@@ -1,5 +1,21 @@
 [
 {
+  "id": "resources:oathkeeper:rules:hydra-oauth2",
+  "upstream": {
+    "url": "http://hydra:4444/"
+  },
+  "match": {
+    "url": "http://localhost:4455/oauth2/<.*>",
+    "methods": [
+      "GET", "POST"
+    ]
+  },
+  "authenticators": [{ "handler": "noop" }],
+  "authorizer": { "handler": "allow" },
+  "mutators": [{ "handler": "noop" }],
+  "errors": [{ "handler": "json" }]
+},
+{
   "id": "resources:oathkeeper:rules:resource-server-oathkeeper",
   "upstream": {
     "url": "http://resource-server:4478/"

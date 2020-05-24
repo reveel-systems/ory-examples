@@ -181,6 +181,9 @@ services:
       - MUTATORS_ID_TOKEN_CONFIG_ISSUER_URL=http://$BROWSER_OATHKEEPER_PROXY_HOST:4455/
       - MUTATORS_ID_TOKEN_CONFIG_JWKS_URL=file:///etc/secrets/mutator.id_token.jwks.json
       - ACCESS_RULES_REPOSITORIES=file:///rules.json
+      - AUTHENTICATORS_NOOP_ENABLED=true
+      - AUTHORIZERS_ALLOW_ENABLED=true
+      - MUTATORS_NOOP_ENABLED=true
     restart: on-failure
     volumes:
       - .:/etc/secrets
