@@ -28,7 +28,7 @@ services:
     restart: on-failure
 
   oathkeeper-migrate:
-    image: oryd/oathkeeper:$OATHKEEPER_VERSION
+    image: 'oryd/oathkeeper:$OATHKEEPER_VERSION'
     links:
       - postgresd:postgresd
     environment:
@@ -53,26 +53,103 @@ services:
     networks:
       - intranet
     environment:
-      - CORS_ENABLED=true
+        ## - CORS_ENABLED=true
       - CORS_ALLOWED_METHODS=POST,GET,PUT,DELETE
       - LOG_LEVEL=debug
-      - SYSTEM_SECRET=youReallyNeedToChangeThis
-      - DATABASE_URL=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
-      - OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:4488/consent
-      - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:4488/login
-      - OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444
-      - OAUTH2_SHARE_ERROR_DEBUG=1
-    restart: on-failure
+        ## - SYSTEM_SECRET=youReallyNeedToChangeThis
+        ## - DATABASE_URL=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
+        # - OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:4488/consent
+        # - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:4488/login
+        # - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:1337/login
+        # - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:3000/api/v1/users/login
+        ## - OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:3000/auth/consent/
+        ## - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:3000/auth/login/
+        ## - OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444
+        ## - OAUTH2_SHARE_ERROR_DEBUG=1
+
+      # v1.4.9 variables
+      - SERVE_ADMIN_CORS_ENABLED=true
+      - OAUTH2_EXPOSE_INTERNAL_ERRORS=1
+      - URLS_SELF_ISSUER=http://$BROWSER_HYDRA_HOST:4444
+      - URLS_CONSENT=http://$BROWSER_IDP_HOST:3000/auth/consent
+      - URLS_LOGIN=http://$BROWSER_IDP_HOST:3000/auth/login
+      - URLS_LOGOUT=http://$BROWSER_IDP_HOST:3000/logout
+        # - DSN=memory
+      - DSN=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
+      - SECRETS_SYSTEM=youReallyNeedToChangeThis
+      - OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public,pairwise
+      - OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT=youReallyNeedToChangeThis
+    restart: unless-stopped
+    # restart: on-failure
+
+  hydra2:
+    image: oryd/hydra:$HYDRA_VERSION
+    links:
+      - postgresd:postgresd
+    ports:
+      - "4544:4544"
+      - "4545:4545"
+    depends_on:
+      - hydra-migrate
+    command:
+      serve all --dangerous-force-http
+    networks:
+      - intranet
+    environment:
+      - SERVE_PUBLIC_PORT=4544
+      - SERVE_ADMIN_PORT=4545
+      - CORS_ALLOWED_METHODS=POST,GET,PUT,DELETE
+      - LOG_LEVEL=debug
+      # v1.4.9 variables
+      - SERVE_ADMIN_CORS_ENABLED=true
+      - OAUTH2_EXPOSE_INTERNAL_ERRORS=1
+      - URLS_SELF_ISSUER=http://$BROWSER_HYDRA_HOST:4544
+      - URLS_CONSENT=http://$BROWSER_IDP_HOST:4488/consent
+      - URLS_LOGIN=http://$BROWSER_IDP_HOST:4488/login
+      - URLS_LOGOUT=http://$BROWSER_IDP_HOST:4488/logout
+      - DSN=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
+      - SECRETS_SYSTEM=youReallyNeedToChangeThis
+      - OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public,pairwise
+      - OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT=youReallyNeedToChangeThis
+    restart: unless-stopped
+
+    #   hydra3:
+    #     image: oryd/hydra:$HYDRA_VERSION
+    #     links:
+    #       - postgresd:postgresd
+    #     ports:
+    #       - "4644:4444"
+    #       - "4645:4445"
+    #     depends_on:
+    #       - hydra-migrate
+    #     command:
+    #       serve all --dangerous-force-http
+    #     networks:
+    #       - intranet
+    #     environment:
+    #       - CORS_ENABLED=true
+    #       - CORS_ALLOWED_METHODS=POST,GET,PUT,DELETE
+    #       - LOG_LEVEL=debug
+    #       - SYSTEM_SECRET=youReallyNeedToChangeThis
+    #       - DATABASE_URL=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
+    #       - OAUTH2_CONSENT_URL=http://$BROWSER_IDP_HOST:4488/consent
+    #       - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:4488/login
+    #         # - OAUTH2_LOGIN_URL=http://$BROWSER_IDP_HOST:1337/login
+    #       - OAUTH2_ISSUER_URL=http://$BROWSER_HYDRA_HOST:4444
+    #       - OAUTH2_SHARE_ERROR_DEBUG=1
+    #     restart: on-failure
 
   oathkeeper-proxy:
-    image: oryd/oathkeeper:$OATHKEEPER_VERSION
+    image: 'oryd/oathkeeper:$OATHKEEPER_VERSION'
     links:
       - postgresd:postgresd
     ports:
       - "4455:4455"
     depends_on:
       - oathkeeper-api
+      - oathkeeper-api2
       - hydra
+      - hydra2
       - keto
     command:
       serve proxy
@@ -85,18 +162,32 @@ services:
       - OATHKEEPER_API_URL=http://oathkeeper-api:4456
       - CREDENTIALS_ISSUER_ID_TOKEN_ALGORITHM=ory-hydra
       - CREDENTIALS_ISSUER_ID_TOKEN_HYDRA_JWK_SET_ID=resources:hydra:jwk:oathkeeper
-      - CREDENTIALS_ISSUER_ID_TOKEN_HYDRA_ADMIN_URL=http://hydra:4445
+      - CREDENTIALS_ISSUER_ID_TOKEN_HYDRA_ADMIN_URL=http://hydra2:4545
       - CREDENTIALS_ISSUER_ID_TOKEN_LIFESPAN=1h
       - CREDENTIALS_ISSUER_ID_TOKEN_ISSUER=http://oathkeeper-api:4456
       - CREDENTIALS_ISSUER_ID_TOKEN_JWK_REFRESH_INTERVAL=30m
       - AUTHORIZER_KETO_URL=http://keto:4466
       - AUTHENTICATOR_ANONYMOUS_USERNAME=anonymous
-      - AUTHENTICATOR_OAUTH2_INTROSPECTION_URL=http://hydra:4445/oauth2/introspect
+      - AUTHENTICATOR_OAUTH2_INTROSPECTION_URL=http://hydra2:4545/oauth2/introspect
       - AUTHENTICATOR_OAUTH2_CLIENT_CREDENTIALS_TOKEN_URL=http://hydra:4444/oauth2/token
+        # - ACCESS_RULES_REPOSITORIES=inline://Wwp7CiAgImlkIjogInJlc291cmNlczpvYXRoa2VlcGVyOnJ1bGVzOnJlc291cmNlLXNlcnZlci1vYXRoa2VlcGVyIiwKICAidXBzdHJlYW0iOiB7CiAgICAidXJsIjogImh0dHA6Ly9yZXNvdXJjZS1zZXJ2ZXI6NDQ3OC8iCiAgfSwKICAibWF0Y2giOiB7CiAgICAidXJsIjogImh0dHA6Ly9vYXRoa2VlcGVyLXByb3h5OjQ0NTUvb2F0aGtlZXBlciIsCiAgICAibWV0aG9kcyI6IFsKICAgICAgIkdFVCIKICAgIF0KICB9LAogICJhdXRoZW50aWNhdG9ycyI6IFsKICAgIHsKICAgICAgImhhbmRsZXIiOiAib2F1dGgyX2ludHJvc3BlY3Rpb24iLAogICAgICAiY29uZmlnIjogewogICAgICAgICJyZXF1aXJlZF9zY29wZSI6IFsKICAgICAgICAgICJhcnRpY2xlcy5yZWFkIgogICAgICAgIF0KICAgICAgfQogICAgfQogIF0sCiAgImF1dGhvcml6ZXIiOiB7CiAgICAiaGFuZGxlciI6ICJrZXRvX2VuZ2luZV9hY3Bfb3J5IiwKICAgICJjb25maWciOiB7CiAgICAgICJiYXNlX3VybCI6ICJodHRwOi8va2V0bzo0NDY2IiwKICAgICAgInJlcXVpcmVkX2FjdGlvbiI6ICJibG9nOnJlYWQiLAogICAgICAicmVxdWlyZWRfcmVzb3VyY2UiOiAiYmxvZzpwb3N0czoxIiwKICAgICAgImZsYXZvciI6ICJleGFjdCIKICAgIH0KICB9LAogICJtdXRhdG9ycyI6IFsKICAgIHsKICAgICAgImhhbmRsZXIiOiAiaWRfdG9rZW4iLAogICAgICAiY29uZmlnIjogewogICAgICAgICJjbGFpbXMiOiAie1wiYXVkXCI6IFtdfSIKICAgICAgfQogICAgfQogIF0KfQpdCg==
+      - AUTHENTICATORS_OAUTH2_INTROSPECTION_ENABLED=true
+      - AUTHENTICATORS_OAUTH2_INTROSPECTION_CONFIG_INTROSPECTION_URL=http://hydra2:4545/oauth2/introspect
+      - AUTHORIZERS_KETO_ENGINE_ACP_ORY_ENABLED=true
+      - AUTHORIZERS_KETO_ENGINE_ACP_ORY_CONFIG_BASE_URL=http://keto:4466
+      - AUTHORIZERS_KETO_ENGINE_ACP_ORY_CONFIG_REQUIRED_ACTION=blog:read
+      - AUTHORIZERS_KETO_ENGINE_ACP_ORY_CONFIG_REQUIRED_RESOURCE=blog:posts:1
+      - MUTATORS_ID_TOKEN_ENABLED=true
+      - MUTATORS_ID_TOKEN_CONFIG_ISSUER_URL=http://$BROWSER_OATHKEEPER_PROXY_HOST:4455/
+      - MUTATORS_ID_TOKEN_CONFIG_JWKS_URL=file:///etc/secrets/mutator.id_token.jwks.json
+      - ACCESS_RULES_REPOSITORIES=file:///rules.json
     restart: on-failure
+    volumes:
+      - .:/etc/secrets
+      - ./config/oathkeeper/rules/rules.json:/rules.json
 
   oathkeeper-api:
-    image: oryd/oathkeeper:$OATHKEEPER_VERSION
+    image: 'oryd/oathkeeper:$OATHKEEPER_VERSION'
     links:
       - postgresd:postgresd
     ports:
@@ -123,7 +214,43 @@ services:
       - CREDENTIALS_ISSUER_ID_TOKEN_JWK_REFRESH_INTERVAL=30m
       - AUTHENTICATOR_OAUTH2_INTROSPECTION_URL=http://hydra:4445/oauth2/introspect
       - AUTHENTICATOR_OAUTH2_CLIENT_CREDENTIALS_TOKEN_URL=http://hydra:4444/oauth2/token
+      - MUTATORS_ID_TOKEN_CONFIG_JWKS_URL=file:///etc/secrets/mutator.id_token.jwks.json
     restart: on-failure
+    volumes:
+      - .:/etc/secrets
+
+  oathkeeper-api2:
+    image: 'oryd/oathkeeper:$OATHKEEPER_VERSION'
+    links:
+      - postgresd:postgresd
+    ports:
+      - "4457:4456"
+    depends_on:
+      - hydra-migrate
+    command:
+      serve api
+    networks:
+      - intranet
+    environment:
+      - CORS_ENABLED=true
+      - CORS_ALLOWED_METHODS=POST,GET,PUT,DELETE
+      - LOG_LEVEL=debug
+      - PORT=4456
+      - DATABASE_URL=postgres://dbuser:secret@postgresd:5432/accesscontroldb?sslmode=disable
+      - ISSUER_URL=http://$BROWSER_OATHKEEPER_PROXY_HOST:4455/
+      - AUTHORIZER_KETO_URL=http://keto:4466
+      - CREDENTIALS_ISSUER_ID_TOKEN_ALGORITHM=ory-hydra
+      - CREDENTIALS_ISSUER_ID_TOKEN_HYDRA_JWK_SET_ID=resources:hydra:jwk:oathkeeper
+      - CREDENTIALS_ISSUER_ID_TOKEN_HYDRA_ADMIN_URL=http://hydra:4445
+      - CREDENTIALS_ISSUER_ID_TOKEN_LIFESPAN=1h
+      - CREDENTIALS_ISSUER_ID_TOKEN_ISSUER=http://oathkeeper-api2:4457
+      - CREDENTIALS_ISSUER_ID_TOKEN_JWK_REFRESH_INTERVAL=30m
+      - AUTHENTICATOR_OAUTH2_INTROSPECTION_URL=http://hydra:4445/oauth2/introspect
+      - AUTHENTICATOR_OAUTH2_CLIENT_CREDENTIALS_TOKEN_URL=http://hydra:4444/oauth2/token
+      - MUTATORS_ID_TOKEN_CONFIG_JWKS_URL=file:///etc/secrets/mutator.id_token.jwks.json
+    restart: on-failure
+    volumes:
+      - .:/etc/secrets
 
   keto:
     image: oryd/keto:$KETO_VERSION
@@ -133,6 +260,7 @@ services:
       - "4466:4466"
     depends_on:
       - hydra
+      - hydra2
       - keto-migrate
     networks:
       - intranet
@@ -153,8 +281,10 @@ services:
         - OATHKEEPER_VERSION=$OATHKEEPER_VERSION
     depends_on:
       - hydra
+      - hydra2
       - keto
       - oathkeeper-api
+      - oathkeeper-api2
     networks:
       - intranet
     environment:
@@ -164,6 +294,7 @@ services:
       - KETO_URL=http://keto:4466
       - RESOURCE_SERVER_URL=http://resource-server:4478
       - OATHKEEPER_API_URL=http://oathkeeper-api:4456
+      - OATHKEEPER_API_URL2=http://oathkeeper-api2:4457
       - OATHKEEPER_PROXY_URL=http://oathkeeper-proxy:4455
 
       # This sets the prefix for all resource, action, and subject names. Be aware that this prefix is automatically
@@ -183,9 +314,11 @@ services:
 
   identity-provider:
     environment:
-      - HYDRA_ADMIN_URL=http://hydra:4445
+      - DEBUG=rvl:*
+      - HYDRA_ADMIN_URL=http://hydra2:4545
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - PORT=4488
+      - UX_URL=http://reveel-auth.localhost:80
     image: oryd/hydra-login-consent-node:$LOGIN_CONSENT_VERSION
     networks:
       - intranet
@@ -203,14 +336,15 @@ services:
       - intranet
     depends_on:
       - hydra
+      - hydra2
       - keto
       - oathkeeper-proxy
     ports:
       - "4477:4477"
     environment:
       - PORT=4477
-      - OAUTH2_AUTH_URL=http://$BROWSER_HYDRA_HOST:4444/oauth2/auth
-      - OAUTH2_TOKEN_URL=http://hydra:4444/oauth2/token
+      - OAUTH2_AUTH_URL=http://$BROWSER_HYDRA_HOST:4544/oauth2/auth
+      - OAUTH2_TOKEN_URL=http://hydra2:4544/oauth2/token
       - OAUTH2_CLIENT_ID=consumer-app
       - OAUTH2_CLIENT_SECRET=consumer-secret
       - OAUTH2_REDIRECT_URL=http://$BROWSER_CONSUMER_HOST:4477/auth/callback
@@ -218,12 +352,30 @@ services:
       - BACKEND_WARDEN_SUBJECT_URL=http://resource-server:4478/keto/subject
       - BACKEND_INTROSPECT_URL=http://resource-server:4478/introspect
 
+  "reveel-auth.localhost":
+    build:
+      context: ../apps/reveel-login-signup-ui
+      dockerfile: Dockerfile.prod
+    networks:
+      - intranet
+    depends_on:
+      - hydra
+      - hydra2
+      - keto
+      - oathkeeper-proxy
+      - "consumer.localhost"
+    ports:
+      - "1337:80"
+    environment:
+      - DEBUG=rvl:*
+
   resource-server:
     build:
       context: ../apps/resource-server
       dockerfile: Dockerfile
     depends_on:
       - hydra
+      - hydra2
       - keto
       - oathkeeper-proxy
     networks:
@@ -233,7 +385,7 @@ services:
     environment:
       - PORT=4478
       - OATHKEEPER_KEY_URL=http://oathkeeper-api:4456/.well-known/jwks.json
-      - OAUTH2_INTROSPECT_URL=http://hydra:4445/oauth2/introspect
+      - OAUTH2_INTROSPECT_URL=http://hydra2:4545/oauth2/introspect
       - KETO_URL=http://keto:4466
 
   postgresd:
@@ -247,4 +399,6 @@ services:
 
 networks:
   intranet:
-    driver: bridge
+      # driver: bridge
+    external:
+      name: reveel-intranet

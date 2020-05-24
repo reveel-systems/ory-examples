@@ -1,3 +1,5 @@
 node_modules/
 vendor/
 results/
+*.swp
+.DS_Store

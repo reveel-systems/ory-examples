@@ -1,3 +1,17 @@
+# FORK USED FOR RESEARCH AND LEARNING PURPOSES
+
+*WARNING* This fork will be broken and not work out of the box, but may have contain helpful hints for how to make some desired configurations work. Most notable areas of research and experimentation:
+
+* All experimentation and research has been done on the *full-stack* example and it will no longer work.
+* Deployment - horizontal scaling of Hydra - configure & run more than one instance
+* Deployment - horizontal scaling of Oathkeeper - configure & run more than one instance
+  * Make use of the same JWKS configuration so that requests can come in at any proxy instance
+* Updated Hydra config for `v1.4.9`
+* Updated Oathkeeper-proxy config for `latest-alpine` (as of 5/24/2020)
+* Primary Hydra instance configured to route to internal microservices and will not work.
+
+Ye be warned.
+
 # ORY Ecosystem Deployment Examples
 
 [![CircleCI](https://circleci.com/gh/ory/examples.svg?style=shield)](https://circleci.com/gh/ory/examples)

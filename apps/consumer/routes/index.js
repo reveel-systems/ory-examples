@@ -170,4 +170,9 @@ router.get('/auth/callback', passport.authenticate('oauth2'), (req, res, next) =
   res.redirect(req.session.redirectTo)
 })
 
+router.post('/oauth2/token', passport.authenticate('oauth2'), (req, res) => {
+  console.log('/oauth2/token req: ', req, ' res: ', res);
+  res.status(200).end();
+})
+
 module.exports = router

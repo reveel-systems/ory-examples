@@ -1,11 +1,11 @@
 [
 {
-  "id": "${OATHKEEPER_RESOURCE_PREFIX}rules:resource-server-oathkeeper",
+  "id": "resources:oathkeeper:rules:resource-server-oathkeeper",
   "upstream": {
-    "url": "${RESOURCE_SERVER_URL}/"
+    "url": "http://resource-server:4478/"
   },
   "match": {
-    "url": "${OATHKEEPER_PROXY_URL}/oathkeeper",
+    "url": "http://oathkeeper-proxy:4455/oathkeeper",
     "methods": [
       "GET"
     ]
@@ -23,6 +23,7 @@
   "authorizer": {
     "handler": "keto_engine_acp_ory",
     "config": {
+      "base_url": "http://keto:4466",
       "required_action": "blog:read",
       "required_resource": "blog:posts:1",
       "flavor": "exact"
@@ -32,7 +33,7 @@
     {
       "handler": "id_token",
       "config": {
-        "aud": []
+        "claims": "{\"aud\": []}"
       }
     }
   ]

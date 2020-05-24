@@ -25,6 +25,7 @@ echo "Executing bootstrap scripts..."
 hydra_url=${HYDRA_URL:=undefined}
 hydra_admin_url=${HYDRA_ADMIN_URL:=undefined}
 oathkeeper_url=${OATHKEEPER_API_URL:=undefined}
+oathkeeper_url2=${OATHKEEPER_API_URL2:=undefined}
 keto_url=${KETO_URL:=undefined}
 
 export HYDRA_URL=${hydra_url%/}/
@@ -36,6 +37,7 @@ fi
 
 if [ -d "/config/oathkeeper" ]; then
     backoff /scripts/services/oathkeeper.sh ${oathkeeper_url%/}/ "/config/oathkeeper"
+    backoff /scripts/services/oathkeeper.sh ${oathkeeper_url2%/}/ "/config/oathkeeper"
 fi
 
 if [ -d "/config/keto" ]; then
