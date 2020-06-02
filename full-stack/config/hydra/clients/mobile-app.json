@@ -1,0 +1,17 @@
+{
+  "client_id": "mobile-app",
+  "description": "This client will be used by the AuthSpike mobile RN application.",
+  "scope": "openid offline articles.read",
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code",
+    "id_token"
+  ],
+  "token_endpoint_auth_method": "none",
+  "redirect_uris": [
+    "com.usereveel.hydra:/oauthredirect"
+  ]
+}
