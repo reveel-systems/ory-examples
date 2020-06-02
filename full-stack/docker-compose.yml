@@ -184,6 +184,7 @@ services:
       - AUTHENTICATORS_NOOP_ENABLED=true
       - AUTHORIZERS_ALLOW_ENABLED=true
       - MUTATORS_NOOP_ENABLED=true
+      - CORS_DEBUG=true
     restart: on-failure
     volumes:
       - .:/etc/secrets

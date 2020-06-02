@@ -1,4 +1,6 @@
 FROM node:10.4.0-alpine
+# FROM node:10.4.0
+# ^ This has more default utilities available for debugging (bash, patch, etc)
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -14,6 +16,10 @@ RUN npm install
 
 # Bundle app source
 COPY . .
+
+# RUN patch node_modules/express-jwt/lib/index.js < express-jwt-index.js.patch
+# RUN cat node_modules/express-jwt/lib/index.js
+# ^ Commands that can be run to eval node_module code that had been customized to use console.log for debugging
 
 EXPOSE 8080
 CMD [ "npm", "start" ]

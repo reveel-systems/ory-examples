@@ -9,7 +9,9 @@ ENV_BROWSER_OATHKEEPER_PROXY_HOST ?= localhost
 # ENV_HYDRA_VERSION ?= v1.0.9
 ENV_HYDRA_VERSION ?= v1.4.9
 ENV_KETO_VERSION ?= v0.2.2-sandbox_oryOS.10
-ENV_OATHKEEPER_VERSION ?= latest-alpine
+# ENV_OATHKEEPER_VERSION ?= dev
+# ^ Use this when building a local docker image from the oathkeeper source
+ENV_OATHKEEPER_VERSION ?= v0.38.2-beta.1
 # ENV_OATHKEEPER_VERSION ?= v0.14.2_oryOS.10
 ENV_LOGIN_CONSENT_VERSION ?= reveel-dev
 # ENV_LOGIN_CONSENT_VERSION ?= v1.0.8

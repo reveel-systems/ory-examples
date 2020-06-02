@@ -16,6 +16,39 @@
   "errors": [{ "handler": "json" }]
 },
 {
+  "id": "resources:oathkeeper:rules:reveel-auth-service",
+  "upstream": {
+    "url": "http://auth-service:3000/"
+  },
+  "match": {
+    "url": "http://localhost:4455/auth/<.*>",
+    "methods": [
+      "GET"
+    ]
+  },
+  "authenticators": [
+    {
+      "handler": "oauth2_introspection",
+      "config": {
+        "introspection_url": "http://hydra:4445/oauth2/introspect",
+        "required_scope": [
+          "openid"
+        ]
+      }
+    }
+  ],
+  "authorizer": { "handler": "allow" },
+  "mutators": [
+    {
+      "handler": "id_token",
+      "config": {
+        "claims": "{\"aud\": []}"
+      }
+    }
+  ],
+  "errors": [{ "handler": "json" }]
+},
+{
   "id": "resources:oathkeeper:rules:resource-server-oathkeeper",
   "upstream": {
     "url": "http://resource-server:4478/"
